@@ -27,7 +27,11 @@ def process_pdf(file):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     text_chunks = text_splitter.split_text(extracted_text)
 
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    # --- FIX IS HERE: Explicitly pass the API key ---
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/embedding-001",
+        google_api_key=os.getenv("GOOGLE_API_KEY")
+    )
     vector_store = Chroma.from_texts(texts=text_chunks, embedding=embeddings)
     return vector_store
 
@@ -35,7 +39,12 @@ def get_pdf_response(vector_store, question, selected_voice):
     """Answers a question based on the PDF and generates a voice response."""
     retriever = vector_store.as_retriever()
     
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3)
+    # --- FIX IS HERE: Explicitly pass the API key ---
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash", 
+        temperature=0.3,
+        google_api_key=os.getenv("GOOGLE_API_KEY")
+    )
     
     # Use a simple RetrievalQA chain
     qa_chain = RetrievalQA.from_chain_type(
@@ -61,7 +70,6 @@ def get_pdf_response(vector_store, question, selected_voice):
 # --- STREAMLIT UI ---
 st.set_page_config(page_title="Talk to Your PDF", layout="wide")
 
-# --- NEW: HIDE THE DEFAULT AUDIO PLAYER ---
 st.markdown("""
 <style>
     /* This CSS hides the audio player that Streamlit creates */
@@ -70,7 +78,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-# --- END OF NEW CODE ---
 
 st.title("Talk to Your PDF 🗣️")
 
@@ -119,7 +126,6 @@ if st.session_state.vector_store is not None:
                 )
                 st.markdown(text_answer)
                 if audio_url:
-                    # --- MODIFIED: ADDED autoplay=True ---
                     st.audio(audio_url, format='audio/wav', autoplay=True)
         
         st.session_state.messages.append({"role": "assistant", "content": text_answer})
